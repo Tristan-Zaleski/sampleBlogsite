@@ -1,6 +1,17 @@
+//############## REQUIRENMENTS ##########################
 const express = require("express");
 const bodyParser = require("body-parser");
-var _ = require("lodash")
+const ejs = require("ejs");
+const mongoose = require("mongoose");
+var _ = require("lodash");
+
+//############## CONNECTION TO DB ##########################
+const uri = "mongodb://localhost:27017/blogDB";
+
+// establishes mongoose connection to database
+mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+//############## DEFINITION OF CONSTS ##########################
 
 const homeStartingContent = "Lacus vel facilisis volutpat est velit egestas dui id ornare. Semper auctor neque vitae tempus quam. Sit amet cursus sit amet dictum sit amet justo. Viverra tellus in hac habitasse. Imperdiet proin fermentum leo vel orci porta. Donec ultrices tincidunt arcu non sodales neque sodales ut. Mattis molestie a iaculis at erat pellentesque adipiscing. Magnis dis parturient montes nascetur ridiculus mus mauris vitae ultricies. Adipiscing elit ut aliquam purus sit amet luctus venenatis lectus. Ultrices vitae auctor eu augue ut lectus arcu bibendum at. Odio euismod lacinia at quis risus sed vulputate odio ut. Cursus mattis molestie a iaculis at erat pellentesque adipiscing.";
 const aboutContent = "Hac habitasse platea dictumst vestibulum rhoncus est pellentesque. Dictumst vestibulum rhoncus est pellentesque elit ullamcorper. Non diam phasellus vestibulum lorem sed. Platea dictumst quisque sagittis purus sit. Egestas sed sed risus pretium quam vulputate dignissim suspendisse. Mauris in aliquam sem fringilla. Semper risus in hendrerit gravida rutrum quisque non tellus orci. Amet massa vitae tortor condimentum lacinia quis vel eros. Enim ut tellus elementum sagittis vitae. Mauris ultrices eros in cursus turpis massa tincidunt dui.";
@@ -9,32 +20,51 @@ const contactContent = "Scelerisque eleifend donec pretium vulputate sapien. Rho
 const app = express();
 
 // must have space between app and other constants, as they will not register if written directly under the express invocation
-const posts = [];
+//############## MongoDB CONTS ##########################
+let posts = [];
 
+const postSchema = {
+  title: {
+    type: String,
+    required: true
+  },
+  content: {
+    type: String,
+    required: true
+  }
+};
+
+const Post = mongoose.model("Post", postSchema);
+
+//############## BEGINNING OF APP ##########################
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
 app.get("/", function(req,res){
   //console.log(posts);
-  res.render("home", {homeContent: homeStartingContent, newPostList: posts});
-})
+  res.render("home", {
+    homeContent: homeStartingContent,
+    newPostList: posts
+  });
+});
 
 app.get("/about", function(req,res){
   res.render("about", {abtContent: aboutContent});
-})
+});
 
 app.get("/posts/:postT", function(req, res){
-
   const title = _.lowerCase(req.params.postT);
 
   posts.forEach(function(post){
-
     const searchTitle = _.lowerCase(post.title);
 
     if(title === searchTitle){
       console.log("Match found!");
-      res.render("post", {matchedTitle: post.title, matchedBody: post.textBody});
+      res.render("post", {
+        matchedTitle: post.title,
+        matchedBody: post.content
+      });
     } else {
       console.log("No Match.")
     }
@@ -46,21 +76,24 @@ app.get("/contact", function(req,res){
   res.render("contact", {contContent: contactContent});
 })
 
+//############## COMPOSE SECTION ##########################
 app.get("/compose", function(req,res){
   res.render("compose");
 })
 
 app.post("/compose", function(req, res){
-    const post = {
-      title: req.body.newTitle,
-      textBody: req.body.newPost
-    };
-    //console.log(post);
-    posts.push(post);
+    const post = new Post({
+      title: req.body.postTitle,
+      content: req.body.postContent
+    });
+    console.log(post);
+    //posts.push(post);
+    post.save();
 
     res.redirect("/");
 })
 
+//############## APP LISTENER ##########################
 app.listen(3000, function() {
   console.log("Server started on port 3000");
 });
